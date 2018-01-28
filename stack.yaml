@@ -1,0 +1,6 @@
+flags: {}
+packages:
+- .
+extra-deps:
+- containers-0.5.11.0
+resolver: lts-10.3
