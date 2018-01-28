@@ -2,7 +2,8 @@ module Regex where
 
 import Text.ParserCombinators.Parsec as Parsec
 import Text.ParserCombinators.Parsec.Error
-import Text.Parsec
+import Text.Parsec.ByteString
+import Data.ByteString
 import Control.Arrow
 
 data Regex
@@ -13,7 +14,7 @@ data Regex
     | Consecutive [Regex]
     deriving (Show, Eq)
 
-parse :: String -> Either String Regex
+parse :: ByteString -> Either String Regex
 parse =
     left show .
     Parsec.parse regex "not a regex"

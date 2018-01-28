@@ -26,6 +26,12 @@ dependencies:
 - multimap
 - hspec
 - parsec
+- warp
+- wai
+- wai-extra
+- http-types
+- binary
+- bytestring
 
 library:
   source-dirs: src
