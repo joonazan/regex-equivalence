@@ -30,8 +30,9 @@ dependencies:
 - wai
 - wai-extra
 - http-types
-- binary
-- bytestring
+- text
+- shakespeare
+- blaze-html
 
 library:
   source-dirs: src

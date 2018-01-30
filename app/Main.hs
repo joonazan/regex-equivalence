@@ -1,16 +1,19 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE QuasiQuotes #-}
 
 import Network.Wai
 import Network.Wai.Handler.Warp
 import Network.HTTP.Types (status200)
-import Data.Binary.Builder
-import Data.Maybe (fromMaybe)
-import Data.ByteString (ByteString)
-import Control.Monad
+import Network.HTTP.Types.URI (queryToQueryText)
+import Control.Monad (join)
 import System.Environment (getEnv)
+import Text.Hamlet
+import Text.Blaze.Html.Renderer.Utf8 (renderHtmlBuilder)
+import Prelude hiding (null)
+import Data.Text
 
 import qualified RegexEquality as R
- 
+
 main = do
     port <- getEnv "PORT"
     run (read port) app
@@ -22,34 +25,53 @@ app req respond = respond $ responseBuilder status200 headers content where
     headers =
         [("Content-Type", "text/html")]
     content =
-        static `mappend` dynamic
-    static =
-        fromByteString
-        "<form action='/' method=GET>\
-          \<input type=text name=a>\
-          \<input type=text name=b>\
-          \<input type=submit value=compare>\
-        \</form>"
-    dynamic =
-        fromMaybe empty $ handle $ queryString req
+        renderHtmlBuilder $ template result render
+    result =
+        handle $ queryToQueryText $ queryString req
 
-handle :: [(ByteString, Maybe ByteString)] -> Maybe Builder
+data Route = Frontpage
+
+render :: Route -> [(Text, Text)] -> Text
+render Frontpage _ = "/"
+
+template :: Maybe (Either Text Comparison) -> HtmlUrl Route
+template result = [hamlet|
+$doctype 5
+<html>
+    <head>
+        <title>Regex Equivalence
+    <body>
+        <form action=@{Frontpage} method=GET>
+            <input type=text name=a>
+            <input type=text name=b>
+            <input type=submit value=compare>
+        $maybe res <- result
+            $case res
+                $of Left err
+                    <p>#{err}
+                $of Right Nothing
+                    <p>They are equivalent!
+                $of Right (Just (example, (matching, not_matching)))
+                    <p>
+                        '#{matching}' matches the 
+                        $if null example
+                            empty string 
+                        $else
+                            string '#{example}' 
+                        unlike '#{not_matching}'
+        $nothing
+|]
+
+type Comparison = Maybe (Text, (Text, Text))
+
+handle :: [(Text, Maybe Text)] -> Maybe (Either Text Comparison)
 handle q = do
     a <- join $ lookup "a" q
     b <- join $ lookup "b" q
-    return $ putStringUtf8 $
+    return $
         case R.counterexample a b of
-            Right Nothing ->
-                "Equivalent!"
             Right (Just (example, firstMatches)) ->
-                let
-                    (a', b') =
-                        if firstMatches then
-                            (show a, show b)
-                        else
-                            (show b, show a)
-                in
-                    "Regex " ++ a' ++ " matches the string " ++ show example
-                    ++ " unlike " ++ b' ++ "!"
-            Left s ->
-                "Error parsing: " ++ s
+                Right (Just (pack example, (if firstMatches then (a, b) else (b, a))))
+
+            Right Nothing -> Right Nothing
+            Left err -> Left $ pack err
