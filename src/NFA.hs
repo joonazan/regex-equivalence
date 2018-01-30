@@ -73,53 +73,59 @@ epsilonToNFA (NFAPart arrows epsilons start end) = NFA arrows' accepting' start 
         MultiMap.fromList epsilons
 
 buildNFA :: Regex -> State Int NFAPart
-buildNFA (OneOf regexes) = do
-    entry <- nextId
-    exit <- nextId
-    nfas <- sequence $ map buildNFA regexes
+buildNFA (OneOf regexes) = buildHelper f where
+    f entry exit = do
+        nfas <- sequence $ map buildNFA regexes
 
-    let fromEntry = map ( (,) entry . NFA.start ) nfas
-    let toExit = map (\x -> (end x, exit) ) nfas
+        let fromEntry = map ( (,) entry . NFA.start ) nfas
+        let toExit = map (\x -> (end x, exit) ) nfas
 
-    let arrows' = foldr1 combine $ map arrows nfas
-    let epsilons' = foldr (++) [] (map epsilons nfas) ++ fromEntry ++ toExit
+        let arrows' = foldr1 combine $ map arrows nfas
+        let epsilons' = foldr (++) [] (map epsilons nfas) ++ fromEntry ++ toExit
 
-    return $ NFAPart arrows' epsilons' entry exit
+        return (arrows', epsilons')
 
 
 buildNFA (Consecutive regexes) =
     fmap (foldr1 putInFront) $
     sequence $ map buildNFA regexes
 
-buildNFA (Character c) = do
+buildNFA (Character c) = buildHelper
+    (\entry exit -> return
+        ( (Map.singleton entry (Map.singleton c exit))
+        , []
+        )
+    )
+
+buildNFA (Maybe regex) = extraConnections
+    (\entry exit -> [(entry, exit)])
+    regex
+
+buildNFA (OneOrMore regex) = extraConnections
+    (\entry exit -> [(exit, entry)])
+    regex
+
+buildNFA (NTimes regex) = extraConnections
+    (\entry exit -> [(entry, exit), (exit, entry)])
+    regex
+
+extraConnections :: (Int -> Int -> [(Int, Int)]) -> Regex -> State Int NFAPart
+extraConnections g regex = buildHelper f where
+    f entry exit = do
+        NFAPart arrows epsilons childEntry childExit <- buildNFA regex
+        return
+            ( arrows
+            , g childEntry childExit
+                ++ [(entry, childEntry), (childExit, exit)]
+                ++ epsilons
+            )
+
+buildHelper f = do
     entry <- nextId
     exit <- nextId
-    return $ NFAPart
-        (Map.singleton entry (Map.singleton c exit))
-        []
-        entry
-        exit
-
-buildNFA (Maybe regex) =
-    fmap
-        (\(NFAPart arrows epsilons entry exit) ->
-            NFAPart arrows ([(entry, exit)] ++ epsilons) entry exit
-        )
-        (buildNFA regex)
-
-buildNFA (OneOrMore regex) =
-    fmap
-        (\(NFAPart arrows epsilons entry exit) ->
-            NFAPart arrows ((exit, entry) : epsilons) entry exit
-        )
-        (buildNFA regex)
-
-buildNFA (NTimes regex) =
-    fmap
-        (\(NFAPart arrows epsilons entry exit) ->
-            NFAPart arrows ([(exit, entry), (entry, exit)] ++ epsilons) entry exit
-        )
-        (buildNFA regex)
+    (arrows, epsilons) <- f entry exit
+    return $
+        NFAPart arrows epsilons entry exit
 
 combine =
     Map.unionWith Map.union
