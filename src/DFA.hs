@@ -13,7 +13,7 @@ data DFA node symbol =
     , start :: node
     }
 
-instance (Ord n, Ord s, Show n, Show s) => Eq (DFA n s) where
+instance (Ord n, Ord s) => Eq (DFA n s) where
     a == b = not $ any difference reachable where
         reachable =
             dfs neighbors $ (Just $ start a, Just $ start b)
