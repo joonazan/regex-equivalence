@@ -1,10 +1,12 @@
+{-# LANGUAGE OverloadedStrings #-}
+
 import Test.Hspec
 
 import qualified RegexEquality
 import Regex
 
-equal a b = res where
-    Right res = RegexEquality.equal a b
+equal a b = res == Nothing where
+    Right res = RegexEquality.counterexample a b
 
 expectLeft (Left _) = True
 expectLeft (Right _) = False
