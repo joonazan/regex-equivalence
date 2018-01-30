@@ -25,7 +25,7 @@ recognizedByOne a b = result where
         if Set.member pos visited then
             Right visited
         else if difference pos then
-            Left (path, accepts (fst pos) a)
+            Left (reverse path, accepts (fst pos) a)
         else
             foldr
                 step
