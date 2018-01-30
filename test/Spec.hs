@@ -59,3 +59,6 @@ main = hspec $ do
 
         it "fails on unescaped special character" $
             expectLeft $ parse "+"
+
+        it "parses ? in parens" $
+            parse "(a+b?)" `shouldBe` Right (Consecutive [OneOrMore a, Maybe b])

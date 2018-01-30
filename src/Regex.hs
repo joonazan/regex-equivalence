@@ -9,6 +9,7 @@ import Control.Arrow
 data Regex
     = Character Char
     | NTimes Regex
+    | Maybe Regex
     | OneOrMore Regex
     | OneOf [Regex]
     | Consecutive [Regex]
@@ -31,14 +32,16 @@ consecutive =
 term = do
     base <- literalCharacter <|> parens
 
-    modifier <- optionMaybe $ oneOf "+*"
+    modifier <- optionMaybe $ oneOf modifiers
     return $
         case modifier of
             Just '+' -> OneOrMore base
             Just '*' -> NTimes base
+            Just '?' -> Maybe base
             Nothing -> base
 
-specialCharacters = "|+*().\\"
+modifiers = "+*?"
+specialCharacters = modifiers ++ "|()\\"
 
 literalCharacter =
     fmap Character $

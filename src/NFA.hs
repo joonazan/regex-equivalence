@@ -97,6 +97,13 @@ buildNFA (Character c) = do
         entry
         exit
 
+buildNFA (Maybe regex) =
+    fmap
+        (\(NFAPart arrows epsilons entry exit) ->
+            NFAPart arrows ([(entry, exit)] ++ epsilons) entry exit
+        )
+        (buildNFA regex)
+
 buildNFA (OneOrMore regex) =
     fmap
         (\(NFAPart arrows epsilons entry exit) ->
