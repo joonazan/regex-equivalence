@@ -5,12 +5,12 @@ import DFA
 import qualified NFA
 import qualified Regex
 
-equal :: ByteString -> ByteString -> Either String Bool
-equal a b = do
+counterexample :: ByteString -> ByteString -> Either String (Maybe (String, Bool))
+counterexample a b = do
     a' <- Regex.parse a
     b' <- Regex.parse b
     return $
-        toDfa a' == toDfa b'
+        recognizedByOne (toDfa a') (toDfa b')
 
 toDfa =
     NFA.toDFA . NFA.fromRegex

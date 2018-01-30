@@ -13,29 +13,48 @@ data DFA node symbol =
     , start :: node
     }
 
-instance (Ord n, Ord s) => Eq (DFA n s) where
-    a == b = not $ any difference reachable where
-        reachable =
-            dfs neighbors $ (Just $ start a, Just $ start b)
+recognizedByOne :: (Ord n, Ord s) => DFA n s -> DFA n s -> Maybe ([s], Bool)
+recognizedByOne a b = result where
+    
+    result =
+        case differing (Just $ start a, Just $ start b) [] Set.empty of
+            Right _ -> Nothing
+            Left path -> Just path
 
-        neighbors (x, y) = Map.elems $ merge' (oneSide x a) (oneSide y b) where
-            oneSide mState dfa =
-                fromMaybe Map.empty
-                (mState >>= (\s -> Map.lookup s $ transitions dfa))
+    differing pos path visited =
+        if Set.member pos visited then
+            Right visited
+        else if difference pos then
+            Left (path, accepts (fst pos) a)
+        else
+            foldr
+                step
+                (Right visited)
+                (neighbors pos)
+        where
+            step (c, n) (Right visited) =
+                differing n (c:path) $ Set.insert pos visited
+            step _ (Left path) =
+                Left path
 
-            merge' =
-                merge
-                    (mapMissing $ \k x -> (Just x, Nothing))
-                    (mapMissing $ \k x -> (Nothing, Just x))
-                    (zipWithMatched $ \k a b -> (Just a, Just b))
+    neighbors (x, y) = Map.toList $ merge' (oneSide x a) (oneSide y b) where
+        oneSide mState dfa =
+            fromMaybe Map.empty
+            (mState >>= (\s -> Map.lookup s $ transitions dfa))
 
-        difference (x, y) =
-            accepts x a /= accepts y b
+        merge' =
+            merge
+                (mapMissing $ \k x -> (Just x, Nothing))
+                (mapMissing $ \k x -> (Nothing, Just x))
+                (zipWithMatched $ \k a b -> (Just a, Just b))
 
-        accepts (Just x) a =
-            Set.member x (accepting a)
-        accepts Nothing _ =
-            False
+    difference (x, y) =
+        accepts x a /= accepts y b
+
+    accepts (Just x) a =
+        Set.member x (accepting a)
+    accepts Nothing _ =
+        False
 
 dfs :: Ord a => (a -> [a]) -> a -> Set a
 dfs neighbors start = inner start $ Set.singleton start where

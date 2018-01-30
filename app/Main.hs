@@ -38,10 +38,18 @@ handle q = do
     a <- join $ lookup "a" q
     b <- join $ lookup "b" q
     return $ putStringUtf8 $
-        case R.equal a b of
-            Right True ->
+        case R.counterexample a b of
+            Right Nothing ->
                 "Equivalent!"
-            Right False ->
-                "Not equivalent!"
+            Right (Just (example, firstMatches)) ->
+                let
+                    (a', b') =
+                        if firstMatches then
+                            (show a, show b)
+                        else
+                            (show b, show a)
+                in
+                    "Regex " ++ a' ++ " matches the string " ++ show example
+                    ++ " unlike " ++ b' ++ "!"
             Left s ->
                 "Error parsing: " ++ s
