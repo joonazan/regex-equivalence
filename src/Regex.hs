@@ -18,7 +18,7 @@ data Regex
 parse :: ByteString -> Either String Regex
 parse =
     left show .
-    Parsec.parse regex "not a regex"
+    Parsec.parse (regex <* eof) "not a regex"
 
 ifMany _ [x] = x
 ifMany f list = f list
