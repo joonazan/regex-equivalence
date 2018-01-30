@@ -78,10 +78,13 @@ buildNFA (OneOf regexes) = do
     exit <- nextId
     nfas <- sequence $ map buildNFA regexes
 
-    let epsilons = map ( (,) entry . NFA.start ) nfas ++ map (\x -> (end x, exit) ) nfas
+    let fromEntry = map ( (,) entry . NFA.start ) nfas
+    let toExit = map (\x -> (end x, exit) ) nfas
 
-    return $ NFAPart
-        (foldr1 combine $ map arrows nfas) epsilons entry exit
+    let arrows' = foldr1 combine $ map arrows nfas
+    let epsilons' = foldr (++) [] (map epsilons nfas) ++ fromEntry ++ toExit
+
+    return $ NFAPart arrows' epsilons' entry exit
 
 
 buildNFA (Consecutive regexes) =

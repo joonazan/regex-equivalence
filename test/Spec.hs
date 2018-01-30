@@ -14,7 +14,7 @@ expectLeft (Right _) = False
 main :: IO ()
 main = hspec $ do
 
-    describe "RegexEquality.equal" $ do
+    describe "RegexEquality.counterexample" $ do
         it "works on identical regex" $
             equal "a" "a"
 
@@ -27,11 +27,16 @@ main = hspec $ do
         it "complicated pair" $
             equal "((a+)*)+" "a*"
 
+        it "regression" $
+            not $ equal "a|b" "a+|b"
+
+        it "the latter didn't match the empty string (regression)" $
+            equal "0*a*" "(0*|a)(a*)*"
+
     describe "Parsing" $ do
         let a = Character 'a'
         let b = Character 'b'
         let c = Character 'c'
-
 
         it "single letter" $
             parse "a" `shouldBe` Right a
