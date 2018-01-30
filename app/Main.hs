@@ -7,11 +7,13 @@ import Data.Binary.Builder
 import Data.Maybe (fromMaybe)
 import Data.ByteString (ByteString)
 import Control.Monad
+import System.Environment (getEnv)
 
 import qualified RegexEquality as R
  
-main =
-    run 8080 app
+main = do
+    port <- getEnv "PORT"
+    run (read port) app
 
 app :: Network.Wai.Request
     -> (Network.Wai.Response -> IO ResponseReceived)
