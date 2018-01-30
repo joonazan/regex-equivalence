@@ -38,13 +38,20 @@ template :: Maybe (Either Text Comparison) -> HtmlUrl Route
 template result = [hamlet|
 $doctype 5
 <html>
+
     <head>
         <title>Regex Equivalence
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
     <body>
+        <h1>Regex Equivalence
+        <p>Find out if two regular expressions match the same language
+
         <form action=@{Frontpage} method=GET>
             <input type=text name=a>
             <input type=text name=b>
             <input type=submit value=compare>
+
         $maybe res <- result
             $case res
                 $of Left err
@@ -60,6 +67,16 @@ $doctype 5
                             string '#{example}' 
                         unlike '#{not_matching}'
         $nothing
+        
+        <p>A subset of Perl-style regex is supported:
+        <ul>
+            <li> character -> character
+            <li> x* -> zero or more x
+            <li> x+ -> one or more x
+            <li> x? -> one or zero x
+            <li> foo|bar -> either foo or bar
+            <li> parens to indicate precedence
+            <li> backslash to escape aforementioned characters
 |]
 
 type Comparison = Maybe (Text, (Text, Text))
